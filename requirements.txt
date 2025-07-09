@@ -7,4 +7,5 @@ python-dotenv==1.0.0
 SQLAlchemy==1.4.53
 tabulate==0.9.0
 gunicorn==21.2.0
-python-dateutil==2.8.2 
+python-dateutil==2.8.2
+PyMySQL==1.1.0 
