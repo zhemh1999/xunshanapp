@@ -24,6 +24,9 @@ def main():
     # 获取端口号，支持云平台环境变量
     port = int(os.environ.get('PORT', 8000))
     
+    # 确保端口绑定到0.0.0.0，供外部访问
+    host = '0.0.0.0'
+    
     # 启动生产服务器
     print("正在启动生产服务器...")
     print(f"访问地址: http://0.0.0.0:{port}")
@@ -38,8 +41,8 @@ def main():
         # 配置gunicorn
         sys.argv = [
             'gunicorn',
-            '--bind', f'0.0.0.0:{port}',
-            '--workers', '4',
+            '--bind', f'{host}:{port}',
+            '--workers', '2',
             '--worker-class', 'sync',
             '--timeout', '120',
             '--keepalive', '5',
@@ -53,7 +56,7 @@ def main():
         
     except ImportError:
         print("未安装gunicorn，使用Flask开发服务器...")
-        app.run(debug=False, host='0.0.0.0', port=port)
+        app.run(debug=False, host=host, port=port)
 
 if __name__ == '__main__':
     main() 

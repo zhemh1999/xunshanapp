@@ -131,6 +131,11 @@ def register_routes(app):
         
         return " | ".join(formatted_items)
 
+    # 健康检查路由
+    @app.route('/health')
+    def health_check():
+        return {'status': 'healthy', 'service': 'xunshanapp'}, 200
+    
     # 主页 - 添加登录要求
     @app.route('/')
     @login_required
