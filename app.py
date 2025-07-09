@@ -136,11 +136,20 @@ def register_routes(app):
     def health_check():
         return {'status': 'healthy', 'service': 'xunshanapp'}, 200
     
-    # 主页 - 添加登录要求
+    # 根路径 - 支持健康检查和用户访问
     @app.route('/')
-    @login_required
     def index():
-        return render_template('index.html')
+        # 检查是否是浏览器访问
+        accept_header = request.headers.get('Accept', '')
+        if 'text/html' in accept_header:
+            # 浏览器访问，需要登录
+            if current_user.is_authenticated:
+                return render_template('index.html')
+            else:
+                return redirect(url_for('login'))
+        else:
+            # API访问或健康检查，返回状态
+            return {'status': 'healthy', 'service': 'xunshanapp'}, 200
 
     # 登录页面
     @app.route('/login', methods=['GET', 'POST'])
