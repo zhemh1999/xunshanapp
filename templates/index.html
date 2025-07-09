@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+
+{% block title %}座位管理 - 自习室管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar"></i> 座位概况</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h3 id="totalSeats" class="text-primary">39</h3>
+                            <small class="text-muted">总座位</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h3 id="occupiedSeats" class="text-danger">0</h3>
+                        <small class="text-muted">已占用</small>
+                    </div>
+                </div>
+                <div class="row mt-3 text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h3 id="availableSeats" class="text-success">39</h3>
+                            <small class="text-muted">可用</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h3 id="expiredCards" class="text-warning">0</h3>
+                        <small class="text-muted">过期卡</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if current_user.role == 'admin' %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-database"></i> 数据库管理</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <a href="/database" class="btn btn-outline-info btn-sm w-100">
+                        <i class="fas fa-database"></i> 数据库管理
+                    </a>
+                </div>
+                <div class="mb-2">
+                    <button class="btn btn-outline-primary btn-sm w-100" onclick="showOperationLogs()">
+                        <i class="fas fa-history"></i> 操作记录
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-filter"></i> 筛选</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <button class="btn btn-outline-success btn-sm w-100" onclick="filterSeats('available')">
+                        <i class="fas fa-check"></i> 显示空座位
+                    </button>
+                </div>
+                <div class="mb-2">
+                    <button class="btn btn-outline-danger btn-sm w-100" onclick="filterSeats('occupied')">
+                        <i class="fas fa-user"></i> 显示占用座位
+                    </button>
+                </div>
+                <div class="mb-2">
+                    <button class="btn btn-outline-warning btn-sm w-100" onclick="filterSeats('expired')">
+                        <i class="fas fa-clock"></i> 显示过期卡
+                    </button>
+                </div>
+                <div>
+                    <button class="btn btn-outline-secondary btn-sm w-100" onclick="filterSeats('all')">
+                        <i class="fas fa-list"></i> 显示全部
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-th-large"></i> 座位布局</h5>
+                <button class="btn btn-primary btn-sm" onclick="refreshSeats()">
+                    <i class="fas fa-sync-alt"></i> 刷新
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center">
+                            <div class="seat-card available" style="width: 20px; height: 20px; min-height: auto; padding: 0; margin-right: 5px;"></div>
+                            <small>空闲</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="seat-card occupied" style="width: 20px; height: 20px; min-height: auto; padding: 0; margin-right: 5px;"></div>
+                            <small>占用</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div style="width: 20px; height: 20px; background-color: #fff3cd; border: 2px solid #ffc107; margin-right: 5px;"></div>
+                            <small>即将过期</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="seat-grid" id="seatGrid">
+                    <!-- 座位将通过JavaScript动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 座位详情模态框 -->
+<div class="modal fade" id="seatModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">座位详情 - <span id="modalSeatNumber"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="seatForm">
+                    <input type="hidden" id="seatId">
+                    <div class="mb-3">
+                        <label class="form-label">占用状态</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="is_occupied" id="occupied_yes" value="true">
+                            <label class="form-check-label" for="occupied_yes">已占用</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="is_occupied" id="occupied_no" value="false">
+                            <label class="form-check-label" for="occupied_no">空闲</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="occupantName" class="form-label">使用者姓名</label>
+                        <input type="text" class="form-control" id="occupantName" name="occupant_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="cardType" class="form-label">办卡类型</label>
+                        <select class="form-select" id="cardType" name="card_type">
+                            <option value="">请选择</option>
+                            <option value="月卡">月卡</option>
+                            <option value="季卡">季卡</option>
+                            <option value="半年卡">半年卡</option>
+                            <option value="年卡">年卡</option>
+                            <option value="临时卡">临时卡</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="expiryDate" class="form-label">到期时间</label>
+                        <input type="date" class="form-control" id="expiryDate" name="expiry_date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">备注</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveSeat()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 操作记录模态框 -->
+<div class="modal fade" id="logsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-history"></i> 操作记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="15%">时间</th>
+                                <th width="10%">操作员</th>
+                                <th width="8%">座位</th>
+                                <th width="10%">操作</th>
+                                <th width="57%">变更详情</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 用户角色信息 -->
+<script>
+    window.userRole = '{{ current_user.role }}';
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let seatsData = [];
+let currentFilter = 'all';
+
+$(document).ready(function() {
+    loadSeats();
+});
+
+function loadSeats() {
+    $.ajax({
+        url: '/api/seats',
+        method: 'GET',
+        success: function(data) {
+            seatsData = data;
+            displaySeats();
+            updateStatistics();
+        },
+        error: function() {
+            alert('加载座位数据失败');
+        }
+    });
+}
+
+function displaySeats() {
+    const seatGrid = $('#seatGrid');
+    seatGrid.empty();
+    
+    const filteredSeats = filterSeatsByType(seatsData, currentFilter);
+    
+    filteredSeats.forEach(seat => {
+        const isExpired = seat.expiry_date && new Date(seat.expiry_date) < new Date();
+        const isExpiringSoon = seat.expiry_date && 
+            new Date(seat.expiry_date) > new Date() && 
+            new Date(seat.expiry_date) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        
+        let cardClass = seat.is_occupied ? 'occupied' : 'available';
+        let cardStyle = '';
+        if (isExpiringSoon && seat.is_occupied) {
+            cardStyle = 'background-color: #fff3cd; border-color: #ffc107;';
+        }
+        
+        let seatInfo = '';
+        if (seat.is_occupied) {
+            seatInfo = '<div><i class="fas fa-user"></i> ' + (seat.occupant_name || '未知') + '</div>' +
+                      '<div><i class="fas fa-id-card"></i> ' + (seat.card_type || '无') + '</div>' +
+                      '<div class="' + (isExpired ? 'expired' : '') + '">' +
+                      '<i class="fas fa-calendar"></i> ' + 
+                      (seat.expiry_date ? formatDate(seat.expiry_date) : '无期限') +
+                      (isExpired ? ' (已过期)' : '') +
+                      (isExpiringSoon ? ' (即将过期)' : '') +
+                      '</div>';
+        } else {
+            seatInfo = '<div class="text-success"><i class="fas fa-check"></i> 空闲</div>';
+        }
+        
+        const seatHtml = '<div class="seat-card ' + cardClass + '" onclick="showSeatModal(' + seat.id + ')" style="' + cardStyle + '">' +
+            '<div class="seat-number">' + seat.seat_number + '</div>' +
+            '<div class="seat-info">' + seatInfo + '</div>' +
+            '</div>';
+        
+        seatGrid.append(seatHtml);
+    });
+}
+
+function filterSeatsByType(seats, type) {
+    switch(type) {
+        case 'available':
+            return seats.filter(seat => !seat.is_occupied);
+        case 'occupied':
+            return seats.filter(seat => seat.is_occupied);
+        case 'expired':
+            return seats.filter(seat => 
+                seat.is_occupied && 
+                seat.expiry_date && 
+                new Date(seat.expiry_date) < new Date()
+            );
+        default:
+            return seats;
+    }
+}
+
+function filterSeats(type) {
+    currentFilter = type;
+    displaySeats();
+}
+
+function updateStatistics() {
+    const total = seatsData.length;
+    const occupied = seatsData.filter(seat => seat.is_occupied).length;
+    const available = total - occupied;
+    const expired = seatsData.filter(seat => 
+        seat.is_occupied && 
+        seat.expiry_date && 
+        new Date(seat.expiry_date) < new Date()
+    ).length;
+    
+    $('#totalSeats').text(total);
+    $('#occupiedSeats').text(occupied);
+    $('#availableSeats').text(available);
+    $('#expiredCards').text(expired);
+}
+
+function showSeatModal(seatId) {
+    const seat = seatsData.find(s => s.id === seatId);
+    if (!seat) return;
+    
+    $('#seatId').val(seat.id);
+    $('#modalSeatNumber').text(seat.seat_number);
+    
+    $('input[name="is_occupied"][value="' + seat.is_occupied + '"]').prop('checked', true);
+    $('#occupantName').val(seat.occupant_name || '');
+    $('#cardType').val(seat.card_type || '');
+    $('#expiryDate').val(seat.expiry_date || '');
+    $('#notes').val(seat.notes || '');
+    
+    $('#seatModal').modal('show');
+}
+
+function saveSeat() {
+    const seatId = $('#seatId').val();
+    const formData = {
+        is_occupied: $('input[name="is_occupied"]:checked').val() === 'true',
+        occupant_name: $('#occupantName').val(),
+        card_type: $('#cardType').val(),
+        expiry_date: $('#expiryDate').val(),
+        notes: $('#notes').val()
+    };
+    
+    $.ajax({
+        url: '/api/seats/' + seatId,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(formData),
+        success: function(response) {
+            if (response.success) {
+                $('#seatModal').modal('hide');
+                loadSeats();
+            } else {
+                alert('保存失败');
+            }
+        },
+        error: function() {
+            alert('网络错误');
+        }
+    });
+}
+
+function refreshSeats() {
+    loadSeats();
+}
+
+function showOperationLogs() {
+    if (window.userRole !== 'admin') {
+        alert('权限不足');
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/logs',
+        method: 'GET',
+        success: function(data) {
+            const tableBody = $('#logsTableBody');
+            tableBody.empty();
+            
+            data.forEach(log => {
+                const row = '<tr>' +
+                    '<td>' + formatDateTime(log.timestamp) + '</td>' +
+                    '<td><span class="badge bg-primary">' + log.username + '</span></td>' +
+                    '<td><span class="badge bg-secondary">' + log.seat_number + '</span></td>' +
+                    '<td><span class="badge bg-success">更新座位</span></td>' +
+                    '<td>' +
+                        '<div class="mb-1"><small class="text-muted">修改前:</small></div>' +
+                        '<div class="mb-2 p-2 bg-light rounded"><small>' + log.old_data + '</small></div>' +
+                        '<div class="mb-1"><small class="text-muted">修改后:</small></div>' +
+                        '<div class="p-2 bg-light rounded"><small>' + log.new_data + '</small></div>' +
+                    '</td>' +
+                    '</tr>';
+                tableBody.append(row);
+            });
+            
+            $('#logsModal').modal('show');
+        },
+        error: function() {
+            alert('加载操作记录失败');
+        }
+    });
+}
+
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('zh-CN');
+}
+
+function formatDateTime(dateString) {
+    return new Date(dateString).toLocaleString('zh-CN');
+}
+</script>
+{% endblock %} 
