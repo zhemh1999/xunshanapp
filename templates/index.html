@@ -53,6 +53,11 @@
                         <i class="fas fa-history"></i> 操作记录
                     </button>
                 </div>
+                <div class="mb-2">
+                    <button class="btn btn-outline-info btn-sm w-100" onclick="showHistoryUsers()">
+                        <i class="fas fa-users"></i> 历史用户
+                    </button>
+                </div>
             </div>
         </div>
         {% endif %}
@@ -150,16 +155,41 @@
                         <label for="cardType" class="form-label">办卡类型</label>
                         <select class="form-select" id="cardType" name="card_type">
                             <option value="">请选择</option>
+                            <option value="临时卡">临时卡</option>
+                            <option value="周卡">周卡</option>
                             <option value="月卡">月卡</option>
                             <option value="季卡">季卡</option>
                             <option value="半年卡">半年卡</option>
                             <option value="年卡">年卡</option>
-                            <option value="临时卡">临时卡</option>
+                            <option value="考研卡">考研卡</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label for="expiryDate" class="form-label">到期时间</label>
                         <input type="date" class="form-control" id="expiryDate" name="expiry_date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="startTime" class="form-label">起始时间</label>
+                        <input type="datetime-local" class="form-control" id="startTime" name="start_time">
+                    </div>
+                    <div class="mb-3">
+                        <label for="phoneNumber" class="form-label">电话号码</label>
+                        <input type="tel" class="form-control" id="phoneNumber" name="phone_number" placeholder="请输入电话号码">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">是否好评</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="is_good_review" id="review_yes" value="true">
+                            <label class="form-check-label" for="review_yes">好评</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="is_good_review" id="review_no" value="false">
+                            <label class="form-check-label" for="review_no">差评</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="is_good_review" id="review_none" value="" checked>
+                            <label class="form-check-label" for="review_none">未评价</label>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="notes" class="form-label">备注</label>
@@ -169,6 +199,9 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="clearSeatBtn" onclick="clearSeat()" style="display: none;">
+                    <i class="fas fa-broom"></i> 清除座位
+                </button>
                 <button type="button" class="btn btn-primary" onclick="saveSeat()">保存</button>
             </div>
         </div>
@@ -181,21 +214,82 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fas fa-history"></i> 操作记录</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllLogs()">
+                        <i class="fas fa-check-square"></i> 全选
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="batchDeleteLogs()">
+                        <i class="fas fa-trash-alt"></i> 批量删除
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearAllLogs()">
+                        <i class="fas fa-broom"></i> 清空全部
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
             </div>
             <div class="modal-body">
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead class="table-dark">
                             <tr>
-                                <th width="15%">时间</th>
-                                <th width="10%">操作员</th>
-                                <th width="8%">座位</th>
-                                <th width="10%">操作</th>
-                                <th width="57%">变更详情</th>
+                                <th width="3%">
+                                    <input type="checkbox" id="logsSelectAll" onchange="toggleAllLogs()">
+                                </th>
+                                <th width="13%">时间</th>
+                                <th width="8%">操作员</th>
+                                <th width="7%">座位</th>
+                                <th width="8%">操作</th>
+                                <th width="52%">变更详情</th>
+                                <th width="9%">操作</th>
                             </tr>
                         </thead>
                         <tbody id="logsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 历史用户模态框 -->
+<div class="modal fade" id="historyUsersModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-users"></i> 历史用户数据</h5>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllHistoryUsers()">
+                        <i class="fas fa-check-square"></i> 全选
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="batchDeleteHistoryUsers()">
+                        <i class="fas fa-trash-alt"></i> 批量删除
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="3%">
+                                    <input type="checkbox" id="historySelectAll" onchange="toggleAllHistoryUsers()">
+                                </th>
+                                <th width="7%">座位号</th>
+                                <th width="10%">姓名</th>
+                                <th width="11%">电话</th>
+                                <th width="8%">卡类型</th>
+                                <th width="12%">起始时间</th>
+                                <th width="12%">结束时间</th>
+                                <th width="7%">好评</th>
+                                <th width="13%">备注</th>
+                                <th width="10%">清除时间</th>
+                                <th width="7%">操作员</th>
+                                <th width="8%">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyUsersTableBody">
                         </tbody>
                     </table>
                 </div>
@@ -324,18 +418,59 @@ function showSeatModal(seatId) {
     $('#occupantName').val(seat.occupant_name || '');
     $('#cardType').val(seat.card_type || '');
     $('#expiryDate').val(seat.expiry_date || '');
+    
+    // 处理起始时间
+    if (seat.start_time) {
+        const startTime = new Date(seat.start_time);
+        const formattedTime = startTime.toISOString().slice(0, 16);
+        $('#startTime').val(formattedTime);
+    } else {
+        $('#startTime').val('');
+    }
+    
+    $('#phoneNumber').val(seat.phone_number || '');
+    
+    // 处理是否好评
+    if (seat.is_good_review === true) {
+        $('input[name="is_good_review"][value="true"]').prop('checked', true);
+    } else if (seat.is_good_review === false) {
+        $('input[name="is_good_review"][value="false"]').prop('checked', true);
+    } else {
+        $('input[name="is_good_review"][value=""]').prop('checked', true);
+    }
+    
     $('#notes').val(seat.notes || '');
+    
+    // 显示或隐藏清除按钮
+    if (seat.is_occupied && seat.occupant_name) {
+        $('#clearSeatBtn').show();
+    } else {
+        $('#clearSeatBtn').hide();
+    }
     
     $('#seatModal').modal('show');
 }
 
 function saveSeat() {
     const seatId = $('#seatId').val();
+    
+    // 处理是否好评字段
+    let isGoodReview = null;
+    const reviewValue = $('input[name="is_good_review"]:checked').val();
+    if (reviewValue === 'true') {
+        isGoodReview = true;
+    } else if (reviewValue === 'false') {
+        isGoodReview = false;
+    }
+    
     const formData = {
         is_occupied: $('input[name="is_occupied"]:checked').val() === 'true',
         occupant_name: $('#occupantName').val(),
         card_type: $('#cardType').val(),
         expiry_date: $('#expiryDate').val(),
+        start_time: $('#startTime').val(),
+        is_good_review: isGoodReview,
+        phone_number: $('#phoneNumber').val(),
         notes: $('#notes').val()
     };
     
@@ -375,18 +510,31 @@ function showOperationLogs() {
             const tableBody = $('#logsTableBody');
             tableBody.empty();
             
+            if (data.length === 0) {
+                tableBody.append('<tr><td colspan="7" class="text-center text-muted">暂无操作记录</td></tr>');
+                $('#logsModal').modal('show');
+                return;
+            }
+            
             data.forEach(log => {
+                const operationText = log.operation === 'clear_seat' ? '清除座位' : 
+                                     log.operation === 'update_seat' ? '更新座位' : '其他操作';
+                const operationClass = log.operation === 'clear_seat' ? 'bg-warning' : 
+                                      log.operation === 'update_seat' ? 'bg-success' : 'bg-info';
+                
                 const row = '<tr>' +
+                    '<td><input type="checkbox" class="form-check-input log-checkbox" value="' + log.id + '"></td>' +
                     '<td>' + formatDateTime(log.timestamp) + '</td>' +
                     '<td><span class="badge bg-primary">' + log.username + '</span></td>' +
                     '<td><span class="badge bg-secondary">' + log.seat_number + '</span></td>' +
-                    '<td><span class="badge bg-success">更新座位</span></td>' +
+                    '<td><span class="badge ' + operationClass + '">' + operationText + '</span></td>' +
                     '<td>' +
                         '<div class="mb-1"><small class="text-muted">修改前:</small></div>' +
                         '<div class="mb-2 p-2 bg-light rounded"><small>' + log.old_data + '</small></div>' +
                         '<div class="mb-1"><small class="text-muted">修改后:</small></div>' +
                         '<div class="p-2 bg-light rounded"><small>' + log.new_data + '</small></div>' +
                     '</td>' +
+                    '<td><button class="btn btn-sm btn-outline-danger" onclick="deleteOperationLog(' + log.id + ')"><i class="fas fa-trash"></i></button></td>' +
                     '</tr>';
                 tableBody.append(row);
             });
@@ -405,6 +553,249 @@ function formatDate(dateString) {
 
 function formatDateTime(dateString) {
     return new Date(dateString).toLocaleString('zh-CN');
+}
+
+function clearSeat() {
+    const seatId = $('#seatId').val();
+    const seatNumber = $('#modalSeatNumber').text();
+    
+    if (!confirm(`确定要清除座位 ${seatNumber} 的用户数据吗？\n\n清除后：\n- 座位状态将变为空闲\n- 用户数据将保存到历史记录中\n- 此操作无法撤销`)) {
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/seats/' + seatId + '/clear',
+        method: 'POST',
+        contentType: 'application/json',
+        success: function(response) {
+            if (response.success) {
+                alert('✅ ' + response.message);
+                $('#seatModal').modal('hide');
+                loadSeats();
+            } else {
+                alert('❌ ' + response.message);
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            alert('❌ 清除失败: ' + (response ? response.message : '网络错误'));
+        }
+    });
+}
+
+function showHistoryUsers() {
+    if (window.userRole !== 'admin') {
+        alert('权限不足，只有管理员可以查看历史用户数据');
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/history-users',
+        method: 'GET',
+        success: function(data) {
+            const tableBody = $('#historyUsersTableBody');
+            tableBody.empty();
+            
+            if (data.length === 0) {
+                tableBody.append('<tr><td colspan="12" class="text-center text-muted">暂无历史用户数据</td></tr>');
+                $('#historyUsersModal').modal('show');
+                return;
+            }
+            
+            data.forEach(user => {
+                const reviewText = user.is_good_review === true ? '好评' : 
+                                 user.is_good_review === false ? '差评' : '未评价';
+                const reviewClass = user.is_good_review === true ? 'text-success' : 
+                                   user.is_good_review === false ? 'text-danger' : 'text-muted';
+                
+                const row = '<tr>' +
+                    '<td><input type="checkbox" class="form-check-input history-checkbox" value="' + user.id + '"></td>' +
+                    '<td><span class="badge bg-secondary">' + user.seat_number + '</span></td>' +
+                    '<td>' + (user.occupant_name || '-') + '</td>' +
+                    '<td>' + (user.phone_number || '-') + '</td>' +
+                    '<td>' + (user.card_type || '-') + '</td>' +
+                    '<td>' + (user.start_time ? formatDateTime(user.start_time) : '-') + '</td>' +
+                    '<td>' + (user.end_time ? formatDateTime(user.end_time) : '-') + '</td>' +
+                    '<td><span class="' + reviewClass + '">' + reviewText + '</span></td>' +
+                    '<td>' + (user.notes ? (user.notes.length > 20 ? user.notes.substring(0, 20) + '...' : user.notes) : '-') + '</td>' +
+                    '<td>' + formatDateTime(user.cleared_at) + '</td>' +
+                    '<td><span class="badge bg-primary">' + user.cleared_by + '</span></td>' +
+                    '<td><button class="btn btn-sm btn-outline-danger" onclick="deleteHistoryUser(' + user.id + ')"><i class="fas fa-trash"></i></button></td>' +
+                    '</tr>';
+                tableBody.append(row);
+            });
+            
+            $('#historyUsersModal').modal('show');
+        },
+        error: function() {
+            alert('加载历史用户数据失败');
+        }
+    });
+}
+
+// 历史用户数据删除相关函数
+function deleteHistoryUser(historyId) {
+    if (!confirm('确定要删除这条历史用户记录吗？\n\n删除后无法恢复！')) {
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/history-users/' + historyId,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                alert('✅ ' + response.message);
+                showHistoryUsers(); // 重新加载数据
+            } else {
+                alert('❌ ' + response.message);
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            alert('❌ 删除失败: ' + (response ? response.message : '网络错误'));
+        }
+    });
+}
+
+function batchDeleteHistoryUsers() {
+    const selectedIds = [];
+    $('.history-checkbox:checked').each(function() {
+        selectedIds.push(parseInt($(this).val()));
+    });
+    
+    if (selectedIds.length === 0) {
+        alert('请选择要删除的记录');
+        return;
+    }
+    
+    if (!confirm(`确定要删除选中的 ${selectedIds.length} 条历史用户记录吗？\n\n删除后无法恢复！`)) {
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/history-users/batch-delete',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({history_ids: selectedIds}),
+        success: function(response) {
+            if (response.success) {
+                alert('✅ ' + response.message);
+                showHistoryUsers(); // 重新加载数据
+            } else {
+                alert('❌ ' + response.message);
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            alert('❌ 批量删除失败: ' + (response ? response.message : '网络错误'));
+        }
+    });
+}
+
+function toggleAllHistoryUsers() {
+    const isChecked = $('#historySelectAll').prop('checked');
+    $('.history-checkbox').prop('checked', isChecked);
+}
+
+function selectAllHistoryUsers() {
+    $('.history-checkbox').prop('checked', true);
+    $('#historySelectAll').prop('checked', true);
+}
+
+// 操作记录删除相关函数
+function deleteOperationLog(logId) {
+    if (!confirm('确定要删除这条操作记录吗？\n\n删除后无法恢复！')) {
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/logs/' + logId,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                alert('✅ ' + response.message);
+                showOperationLogs(); // 重新加载数据
+            } else {
+                alert('❌ ' + response.message);
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            alert('❌ 删除失败: ' + (response ? response.message : '网络错误'));
+        }
+    });
+}
+
+function batchDeleteLogs() {
+    const selectedIds = [];
+    $('.log-checkbox:checked').each(function() {
+        selectedIds.push(parseInt($(this).val()));
+    });
+    
+    if (selectedIds.length === 0) {
+        alert('请选择要删除的记录');
+        return;
+    }
+    
+    if (!confirm(`确定要删除选中的 ${selectedIds.length} 条操作记录吗？\n\n删除后无法恢复！`)) {
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/logs/batch-delete',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({log_ids: selectedIds}),
+        success: function(response) {
+            if (response.success) {
+                alert('✅ ' + response.message);
+                showOperationLogs(); // 重新加载数据
+            } else {
+                alert('❌ ' + response.message);
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            alert('❌ 批量删除失败: ' + (response ? response.message : '网络错误'));
+        }
+    });
+}
+
+function clearAllLogs() {
+    if (!confirm('确定要清空所有操作记录吗？\n\n此操作会删除所有历史操作记录，无法恢复！')) {
+        return;
+    }
+    
+    if (!confirm('再次确认：真的要清空所有操作记录吗？')) {
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/logs/clear-all',
+        method: 'POST',
+        success: function(response) {
+            if (response.success) {
+                alert('✅ ' + response.message);
+                showOperationLogs(); // 重新加载数据
+            } else {
+                alert('❌ ' + response.message);
+            }
+        },
+        error: function(xhr) {
+            const response = xhr.responseJSON;
+            alert('❌ 清空失败: ' + (response ? response.message : '网络错误'));
+        }
+    });
+}
+
+function toggleAllLogs() {
+    const isChecked = $('#logsSelectAll').prop('checked');
+    $('.log-checkbox').prop('checked', isChecked);
+}
+
+function selectAllLogs() {
+    $('.log-checkbox').prop('checked', true);
+    $('#logsSelectAll').prop('checked', true);
 }
 </script>
 {% endblock %} 

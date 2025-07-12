@@ -33,6 +33,9 @@ class Seat(db.Model):
     occupant_name = db.Column(db.String(100))
     card_type = db.Column(db.String(50))  # 办卡类型
     expiry_date = db.Column(db.Date)  # 到期时间
+    start_time = db.Column(db.DateTime)  # 起始时间
+    is_good_review = db.Column(db.Boolean, default=None)  # 是否好评
+    phone_number = db.Column(db.String(20))  # 电话号码
     notes = db.Column(db.Text)  # 备注
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -46,6 +49,20 @@ class OperationLog(db.Model):
     old_data = db.Column(db.Text)  # 修改前的数据
     new_data = db.Column(db.Text)  # 修改后的数据
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+# 历史用户数据模型
+class HistoryUser(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    seat_number = db.Column(db.String(10), nullable=False)  # 座位号
+    occupant_name = db.Column(db.String(100))  # 用户姓名
+    phone_number = db.Column(db.String(20))  # 电话号码
+    start_time = db.Column(db.DateTime)  # 起始时间
+    end_time = db.Column(db.DateTime)  # 结束时间
+    card_type = db.Column(db.String(50))  # 办卡类型
+    is_good_review = db.Column(db.Boolean)  # 是否好评
+    notes = db.Column(db.Text)  # 备注
+    cleared_at = db.Column(db.DateTime, default=datetime.utcnow)  # 清除时间
+    cleared_by = db.Column(db.Integer, db.ForeignKey('user.id'))  # 清除操作员
 
 def create_app(config_name=None):
     """应用工厂函数"""
@@ -121,6 +138,34 @@ def register_routes(app):
                     formatted_items.append(f"到期时间: {expiry}")
             else:
                 formatted_items.append(f"到期时间: {expiry}")
+        
+        # 格式化起始时间
+        if 'start_time' in data:
+            start_time = data['start_time'] or "无"
+            if start_time != "无":
+                try:
+                    # 如果是日期时间字符串，格式化显示
+                    formatted_datetime = datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').strftime('%Y年%m月%d日 %H:%M')
+                    formatted_items.append(f"起始时间: {formatted_datetime}")
+                except:
+                    formatted_items.append(f"起始时间: {start_time}")
+            else:
+                formatted_items.append(f"起始时间: {start_time}")
+        
+        # 格式化是否好评
+        if 'is_good_review' in data:
+            review = data['is_good_review']
+            if review is None:
+                formatted_items.append("好评: 未评价")
+            elif review:
+                formatted_items.append("好评: 是")
+            else:
+                formatted_items.append("好评: 否")
+        
+        # 格式化电话号码
+        if 'phone_number' in data:
+            phone = data['phone_number'] or "无"
+            formatted_items.append(f"电话: {phone}")
         
         # 格式化备注
         if 'notes' in data:
@@ -465,6 +510,9 @@ def register_routes(app):
                     'occupant_name': seat.occupant_name,
                     'card_type': seat.card_type,
                     'expiry_date': seat.expiry_date.isoformat() if seat.expiry_date else None,
+                    'start_time': seat.start_time.isoformat() if seat.start_time else None,
+                    'is_good_review': seat.is_good_review,
+                    'phone_number': seat.phone_number,
                     'notes': seat.notes,
                     'updated_at': seat.updated_at.isoformat() if seat.updated_at else None
                 } for seat in seats],
@@ -503,6 +551,9 @@ def register_routes(app):
                 'occupant_name': seat.occupant_name,
                 'card_type': seat.card_type,
                 'expiry_date': seat.expiry_date.isoformat() if seat.expiry_date else None,
+                'start_time': seat.start_time.isoformat() if seat.start_time else None,
+                'is_good_review': seat.is_good_review,
+                'phone_number': seat.phone_number,
                 'notes': seat.notes,
                 'updated_at': seat.updated_at.isoformat() if seat.updated_at else None
             })
@@ -521,6 +572,9 @@ def register_routes(app):
             'occupant_name': seat.occupant_name,
             'card_type': seat.card_type,
             'expiry_date': seat.expiry_date.isoformat() if seat.expiry_date else None,
+            'start_time': seat.start_time.isoformat() if seat.start_time else None,
+            'is_good_review': seat.is_good_review,
+            'phone_number': seat.phone_number,
             'notes': seat.notes
         }
         
@@ -530,6 +584,9 @@ def register_routes(app):
             'occupant_name': data.get('occupant_name', '').strip() or None,
             'card_type': data.get('card_type', '').strip() or None,
             'expiry_date': data.get('expiry_date') if data.get('expiry_date') else None,
+            'start_time': data.get('start_time') if data.get('start_time') else None,
+            'is_good_review': data.get('is_good_review') if data.get('is_good_review') is not None else None,
+            'phone_number': data.get('phone_number', '').strip() or None,
             'notes': data.get('notes', '').strip() or None
         }
         
@@ -561,6 +618,13 @@ def register_routes(app):
             else:
                 seat.expiry_date = None
             
+            if new_data['start_time']:
+                seat.start_time = datetime.strptime(new_data['start_time'], '%Y-%m-%dT%H:%M')
+            else:
+                seat.start_time = None
+            
+            seat.is_good_review = new_data['is_good_review']
+            seat.phone_number = new_data['phone_number']
             seat.notes = new_data['notes']
             seat.updated_at = datetime.utcnow()
             seat.updated_by = current_user.id
@@ -581,6 +645,80 @@ def register_routes(app):
         else:
             # 没有变化，不需要更新
             return jsonify({'success': True, 'message': '座位信息无变化'})
+
+    # 清除座位数据
+    @app.route('/api/seats/<int:seat_id>/clear', methods=['POST'])
+    @login_required
+    def clear_seat(seat_id):
+        seat = Seat.query.get_or_404(seat_id)
+        
+        # 检查座位是否被占用
+        if not seat.is_occupied:
+            return jsonify({'success': False, 'message': '座位未被占用，无需清除'})
+        
+        # 检查是否有用户数据
+        if not seat.occupant_name:
+            return jsonify({'success': False, 'message': '座位无用户数据，无需清除'})
+        
+        try:
+            # 保存到历史用户数据表
+            history_user = HistoryUser(
+                seat_number=seat.seat_number,
+                occupant_name=seat.occupant_name,
+                phone_number=seat.phone_number,
+                start_time=seat.start_time,
+                end_time=datetime.utcnow(),  # 结束时间为当前时间
+                card_type=seat.card_type,
+                is_good_review=seat.is_good_review,
+                notes=seat.notes,
+                cleared_by=current_user.id
+            )
+            db.session.add(history_user)
+            
+            # 记录操作前的数据
+            old_data = {
+                'is_occupied': seat.is_occupied,
+                'occupant_name': seat.occupant_name,
+                'card_type': seat.card_type,
+                'expiry_date': seat.expiry_date.isoformat() if seat.expiry_date else None,
+                'start_time': seat.start_time.isoformat() if seat.start_time else None,
+                'is_good_review': seat.is_good_review,
+                'phone_number': seat.phone_number,
+                'notes': seat.notes
+            }
+            
+            # 清除座位数据
+            seat.is_occupied = False
+            seat.occupant_name = None
+            seat.card_type = None
+            seat.expiry_date = None
+            seat.start_time = None
+            seat.is_good_review = None
+            seat.phone_number = None
+            seat.notes = None
+            seat.updated_at = datetime.utcnow()
+            seat.updated_by = current_user.id
+            
+            # 记录操作日志
+            log = OperationLog(
+                user_id=current_user.id,
+                seat_id=seat.id,
+                operation='clear_seat',
+                old_data=format_seat_data_for_log(old_data),
+                new_data='座位已清除，用户数据已保存到历史记录'
+            )
+            db.session.add(log)
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': f'座位 {seat.seat_number} 已清除，用户数据已保存到历史记录'
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'清除失败: {str(e)}'}), 500
 
     # 获取操作记录（仅管理员）
     @app.route('/api/logs')
@@ -612,6 +750,167 @@ def register_routes(app):
         except Exception as e:
             print(f"操作记录查询错误: {e}")
             return jsonify({'error': '查询失败'}), 500
+
+    # 删除操作记录（仅管理员）
+    @app.route('/api/logs/<int:log_id>', methods=['DELETE'])
+    @login_required
+    def delete_operation_log(log_id):
+        if current_user.role != 'admin':
+            return jsonify({'error': '权限不足'}), 403
+        
+        try:
+            log = OperationLog.query.get_or_404(log_id)
+            
+            db.session.delete(log)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': '操作记录已删除'
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'删除失败: {str(e)}'}), 500
+
+    # 批量删除操作记录（仅管理员）
+    @app.route('/api/logs/batch-delete', methods=['POST'])
+    @login_required
+    def batch_delete_operation_logs():
+        if current_user.role != 'admin':
+            return jsonify({'error': '权限不足'}), 403
+        
+        try:
+            data = request.get_json()
+            log_ids = data.get('log_ids', [])
+            
+            if not log_ids:
+                return jsonify({'success': False, 'message': '请选择要删除的记录'})
+            
+            # 删除指定的操作记录
+            deleted_count = OperationLog.query.filter(OperationLog.id.in_(log_ids)).delete()
+            db.session.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': f'已删除 {deleted_count} 条操作记录'
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'批量删除失败: {str(e)}'}), 500
+
+    # 清空所有操作记录（仅管理员）
+    @app.route('/api/logs/clear-all', methods=['POST'])
+    @login_required
+    def clear_all_operation_logs():
+        if current_user.role != 'admin':
+            return jsonify({'error': '权限不足'}), 403
+        
+        try:
+            # 获取记录总数
+            total_count = OperationLog.query.count()
+            
+            # 清空所有操作记录
+            OperationLog.query.delete()
+            db.session.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': f'已清空所有操作记录 (共{total_count}条)'
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'清空失败: {str(e)}'}), 500
+
+    # 获取历史用户数据（仅管理员）
+    @app.route('/api/history-users')
+    @login_required
+    def get_history_users():
+        if current_user.role != 'admin':
+            return jsonify({'error': '权限不足'}), 403
+        
+        try:
+            # 获取历史用户数据，按清除时间倒序排列
+            history_users = db.session.query(HistoryUser, User)\
+                .join(User, HistoryUser.cleared_by == User.id)\
+                .order_by(HistoryUser.cleared_at.desc())\
+                .all()
+            
+            history_data = []
+            for history_user, operator in history_users:
+                history_data.append({
+                    'id': history_user.id,
+                    'seat_number': history_user.seat_number,
+                    'occupant_name': history_user.occupant_name,
+                    'phone_number': history_user.phone_number,
+                    'start_time': history_user.start_time.isoformat() if history_user.start_time else None,
+                    'end_time': history_user.end_time.isoformat() if history_user.end_time else None,
+                    'card_type': history_user.card_type,
+                    'is_good_review': history_user.is_good_review,
+                    'notes': history_user.notes,
+                    'cleared_at': history_user.cleared_at.isoformat(),
+                    'cleared_by': operator.username
+                })
+            
+            return jsonify(history_data)
+            
+        except Exception as e:
+            print(f"历史用户数据查询错误: {e}")
+            return jsonify({'error': '查询失败'}), 500
+
+    # 删除历史用户数据（仅管理员）
+    @app.route('/api/history-users/<int:history_id>', methods=['DELETE'])
+    @login_required
+    def delete_history_user(history_id):
+        if current_user.role != 'admin':
+            return jsonify({'error': '权限不足'}), 403
+        
+        try:
+            history_user = HistoryUser.query.get_or_404(history_id)
+            
+            # 记录删除操作
+            deleted_info = f"删除历史用户记录: {history_user.seat_number} - {history_user.occupant_name}"
+            
+            db.session.delete(history_user)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': f'历史用户记录已删除: {history_user.occupant_name or "未知用户"}'
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'删除失败: {str(e)}'}), 500
+
+    # 批量删除历史用户数据（仅管理员）
+    @app.route('/api/history-users/batch-delete', methods=['POST'])
+    @login_required
+    def batch_delete_history_users():
+        if current_user.role != 'admin':
+            return jsonify({'error': '权限不足'}), 403
+        
+        try:
+            data = request.get_json()
+            history_ids = data.get('history_ids', [])
+            
+            if not history_ids:
+                return jsonify({'success': False, 'message': '请选择要删除的记录'})
+            
+            # 删除指定的历史记录
+            deleted_count = HistoryUser.query.filter(HistoryUser.id.in_(history_ids)).delete()
+            db.session.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': f'已删除 {deleted_count} 条历史用户记录'
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'批量删除失败: {str(e)}'}), 500
 
 def init_db():
     """初始化数据库"""

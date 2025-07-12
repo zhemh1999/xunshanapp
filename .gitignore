@@ -1,0 +1,38 @@
+# Python缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+.env
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.tmp
+*.temp
+*.log
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 部署相关
+.vercel
+.railway
+.render 

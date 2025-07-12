@@ -3,7 +3,7 @@
 
 import os
 import sys
-from app import app, init_db
+from app import create_app, init_db, db
 
 def main():
     print("=" * 60)
@@ -11,9 +11,14 @@ def main():
     print("=" * 60)
     
     try:
-        # 初始化数据库
-        print("📁 正在初始化数据库...")
-        init_db()
+        # 创建应用实例
+        app = create_app('development')
+        
+        # 在应用上下文中初始化数据库
+        with app.app_context():
+            print("📁 正在初始化数据库...")
+            db.create_all()
+            init_db()
         
         print("\n✅ 系统启动成功！")
         print("=" * 60)
@@ -25,7 +30,7 @@ def main():
         print("   登记员: registrar / reg123")
         print("\n💡 功能说明:")
         print("   - 管理39个座位 (A01-A30, B01-B09)")
-        print("   - 座位信息管理 (姓名、卡类型、到期时间)")
+        print("   - 座位信息管理 (姓名、卡类型、到期时间、起始时间、好评、电话)")
         print("   - 操作记录查看 (仅管理员)")
         print("   - 数据统计和筛选")
         print("=" * 60)
