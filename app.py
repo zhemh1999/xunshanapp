@@ -590,12 +590,15 @@ def register_routes(app):
             'notes': data.get('notes', '').strip() or None
         }
         
-        # 标准化旧数据格式
+        # 标准化旧数据格式，包含所有字段
         old_data_normalized = {
             'is_occupied': old_data['is_occupied'],
             'occupant_name': old_data['occupant_name'],
             'card_type': old_data['card_type'],
             'expiry_date': old_data['expiry_date'],
+            'start_time': old_data['start_time'],
+            'is_good_review': old_data['is_good_review'],
+            'phone_number': old_data['phone_number'],
             'notes': old_data['notes']
         }
         
