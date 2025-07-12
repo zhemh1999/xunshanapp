@@ -17,7 +17,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     role = db.Column(db.String(20), nullable=False)  # 'admin' 或 'registrar'
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -37,7 +37,7 @@ class Seat(db.Model):
     is_good_review = db.Column(db.Boolean, default=None)  # 是否好评
     phone_number = db.Column(db.String(20))  # 电话号码
     notes = db.Column(db.Text)  # 备注
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.now)
     updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
 
 # 操作记录模型
@@ -48,7 +48,7 @@ class OperationLog(db.Model):
     operation = db.Column(db.String(50), nullable=False)  # 操作类型
     old_data = db.Column(db.Text)  # 修改前的数据
     new_data = db.Column(db.Text)  # 修改后的数据
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.now)
 
 # 历史用户数据模型
 class HistoryUser(db.Model):
@@ -61,7 +61,7 @@ class HistoryUser(db.Model):
     card_type = db.Column(db.String(50))  # 办卡类型
     is_good_review = db.Column(db.Boolean)  # 是否好评
     notes = db.Column(db.Text)  # 备注
-    cleared_at = db.Column(db.DateTime, default=datetime.utcnow)  # 清除时间
+    cleared_at = db.Column(db.DateTime, default=datetime.now)  # 清除时间
     cleared_by = db.Column(db.Integer, db.ForeignKey('user.id'))  # 清除操作员
 
 def create_app(config_name=None):
@@ -629,7 +629,7 @@ def register_routes(app):
             seat.is_good_review = new_data['is_good_review']
             seat.phone_number = new_data['phone_number']
             seat.notes = new_data['notes']
-            seat.updated_at = datetime.utcnow()
+            seat.updated_at = datetime.now()
             seat.updated_by = current_user.id
             
             # 记录操作日志
@@ -670,7 +670,7 @@ def register_routes(app):
                 occupant_name=seat.occupant_name,
                 phone_number=seat.phone_number,
                 start_time=seat.start_time,
-                end_time=datetime.utcnow(),  # 结束时间为当前时间
+                end_time=datetime.now(),  # 结束时间为当前时间
                 card_type=seat.card_type,
                 is_good_review=seat.is_good_review,
                 notes=seat.notes,
@@ -699,7 +699,7 @@ def register_routes(app):
             seat.is_good_review = None
             seat.phone_number = None
             seat.notes = None
-            seat.updated_at = datetime.utcnow()
+            seat.updated_at = datetime.now()
             seat.updated_by = current_user.id
             
             # 记录操作日志
