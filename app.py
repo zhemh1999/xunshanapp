@@ -3,9 +3,16 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 import os
 from config import config
+
+# 定义中国时区
+CHINA_TIMEZONE = timezone(timedelta(hours=8))
+
+def get_china_time():
+    """获取中国本地时间"""
+    return datetime.now(CHINA_TIMEZONE)
 
 # 全局变量
 db = SQLAlchemy()
@@ -17,7 +24,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     role = db.Column(db.String(20), nullable=False)  # 'admin' 或 'registrar'
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(db.DateTime, default=lambda: get_china_time().replace(tzinfo=None))
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -37,7 +44,7 @@ class Seat(db.Model):
     is_good_review = db.Column(db.Boolean, default=None)  # 是否好评
     phone_number = db.Column(db.String(20))  # 电话号码
     notes = db.Column(db.Text)  # 备注
-    updated_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=lambda: get_china_time().replace(tzinfo=None))
     updated_by = db.Column(db.Integer, db.ForeignKey('user.id'))
 
 # 操作记录模型
@@ -48,7 +55,7 @@ class OperationLog(db.Model):
     operation = db.Column(db.String(50), nullable=False)  # 操作类型
     old_data = db.Column(db.Text)  # 修改前的数据
     new_data = db.Column(db.Text)  # 修改后的数据
-    timestamp = db.Column(db.DateTime, default=datetime.now)
+    timestamp = db.Column(db.DateTime, default=lambda: get_china_time().replace(tzinfo=None))
 
 # 历史用户数据模型
 class HistoryUser(db.Model):
@@ -61,7 +68,7 @@ class HistoryUser(db.Model):
     card_type = db.Column(db.String(50))  # 办卡类型
     is_good_review = db.Column(db.Boolean)  # 是否好评
     notes = db.Column(db.Text)  # 备注
-    cleared_at = db.Column(db.DateTime, default=datetime.now)  # 清除时间
+    cleared_at = db.Column(db.DateTime, default=lambda: get_china_time().replace(tzinfo=None))  # 清除时间
     cleared_by = db.Column(db.Integer, db.ForeignKey('user.id'))  # 清除操作员
 
 def create_app(config_name=None):
@@ -496,7 +503,7 @@ def register_routes(app):
                 .order_by(OperationLog.timestamp.desc()).all()
             
             export_data = {
-                'export_time': datetime.now().isoformat(),
+                'export_time': get_china_time().isoformat(),
                 'users': [{
                     'id': user.id,
                     'username': user.username,
@@ -530,7 +537,7 @@ def register_routes(app):
             # 创建响应
             response = make_response(json.dumps(export_data, ensure_ascii=False, indent=2))
             response.headers['Content-Type'] = 'application/json; charset=utf-8'
-            response.headers['Content-Disposition'] = f'attachment; filename=database_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+            response.headers['Content-Disposition'] = f'attachment; filename=database_export_{get_china_time().strftime("%Y%m%d_%H%M%S")}.json'
             
             return response
             
@@ -629,7 +636,7 @@ def register_routes(app):
             seat.is_good_review = new_data['is_good_review']
             seat.phone_number = new_data['phone_number']
             seat.notes = new_data['notes']
-            seat.updated_at = datetime.now()
+            seat.updated_at = get_china_time().replace(tzinfo=None)
             seat.updated_by = current_user.id
             
             # 记录操作日志
@@ -670,7 +677,7 @@ def register_routes(app):
                 occupant_name=seat.occupant_name,
                 phone_number=seat.phone_number,
                 start_time=seat.start_time,
-                end_time=datetime.now(),  # 结束时间为当前时间
+                end_time=get_china_time().replace(tzinfo=None),  # 结束时间为当前时间
                 card_type=seat.card_type,
                 is_good_review=seat.is_good_review,
                 notes=seat.notes,
@@ -699,7 +706,7 @@ def register_routes(app):
             seat.is_good_review = None
             seat.phone_number = None
             seat.notes = None
-            seat.updated_at = datetime.now()
+            seat.updated_at = get_china_time().replace(tzinfo=None)
             seat.updated_by = current_user.id
             
             # 记录操作日志
